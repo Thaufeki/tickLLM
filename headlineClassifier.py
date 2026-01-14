@@ -1,11 +1,17 @@
 from sentence_transformers import SentenceTransformer # type: ignore
+from transformers import pipeline # type: ignore
 import numpy as np # type: ignore
 
 model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
-categories = {"Tech":"Technology hardware, software, and services",
+sentiment_pipeline = pipeline(
+    "sentiment-analysis",
+    model="distilbert-base-uncased-finetuned-sst-2-english"
+)
+
+categories = {"Tech":"Technology hardware, software, and services, Apple, Facebook, Nvidia, Netflix, Microsoft, AI, OpenAI",
     "Finance":"Banks, investment banks, brokers, financial exhanges",
-    "Commodities":"Oil and gas, refining, pipelines, chemicals, metals, crops, wheat, barley, oats, corn",
+    "Commodities":"Oil, gas, petroleum, refining, pipelines, chemicals, metals, crops, wheat, barley, oats, corn, gold, silver, copper, bauxite",
     "Industrials":"Aerospace, defense, machinery, construction, transportation",
     "Healthcare":"Pharmaceuticals, biotechnology, medical devices, health insurance, hospitals",
     "Retail":"Retail, cars, leisure, hotels, casinos, e-commerce, clothes, food & beverage, supermarkets, household",
@@ -23,10 +29,10 @@ category_embeddings = model.encode(
     normalize_embeddings=True
 )
 
-def classify_text(text, threshold=0.25):
+def classify_text(text, threshold=0.05):
     """
     Classify text into the closest category using cosine similarity.
-    Returns (category, confidence).
+    Returns category.
     """
     text_embedding = model.encode(
         [text],
@@ -40,6 +46,15 @@ def classify_text(text, threshold=0.25):
     best_score = float(similarities[best_idx])
 
     if best_score < threshold:
-        return "other", best_score
+        return "other"
 
     return category_names[best_idx]
+
+def classify_sentiment(text):
+    """
+    Classify text into the closest sentiment using cosine similarity.
+    Returns category.
+    """
+    result = sentiment_pipeline(text, truncation=True)[0]
+
+    return result["label"].lower()
